@@ -103,7 +103,6 @@ export default {
       const { data: res } = await that.$http.get('menus')
       if (res.meta.status === 200) {
         that.menuList = res.data
-        console.log(res.data)
       } else {
         return that.$message.error(res.meta.msg)
       }

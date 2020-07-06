@@ -5,6 +5,7 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
+  min-width: 1366px;
 }
 
 .el-breadcrumb {
@@ -20,4 +21,9 @@ body,
 }
 .el-pagination {
   margin-top: 15px;
+}
+
+/* 解决级联表单数据过长 */
+.el-cascader-menu {
+  height: 300px;
 }

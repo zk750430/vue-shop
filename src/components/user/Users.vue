@@ -76,7 +76,7 @@
         </el-table-column>
         <el-table-column
           label="操作"
-          width="220"
+          width="300"
         >
           <template slot-scope="scope">
 
@@ -86,14 +86,14 @@
               icon="el-icon-edit"
               size="mini"
               @click="editButton(scope.row)"
-            ></el-button>
+            >编辑</el-button>
             <!-- 删除按钮 -->
             <el-button
               type="danger"
               icon="el-icon-delete"
               size="mini"
               @click="deleteUser(scope.row.id)"
-            ></el-button>
+            >删除</el-button>
             <!-- 分配角色按钮 -->
             <!-- 文字提示 -->
             <el-tooltip
@@ -106,6 +106,7 @@
                 type="warning"
                 size="mini"
                 icon="el-icon-setting"
+                @click="openRoleDialogVisible(scope.row)"
               ></el-button>
             </el-tooltip>
           </template>
@@ -223,6 +224,43 @@
         >确 定</el-button>
       </span>
     </el-dialog>
+    <el-dialog
+      title="分配角色"
+      :visible.sync="setRoleDialogVisible"
+      width="50%"
+    >
+      <div>
+        <p>当前的用户：{{userInfo.username}}</p>
+        <p>当前的角色：{{userInfo.role_name}}</p>
+        <p>分配新角色：
+          <template>
+            <el-select
+              v-model="selectRoleId"
+              placeholder="请选择"
+            >
+              <el-option
+                v-for="item in roleList"
+                :key="item.id"
+                :label="item.roleName"
+                :value="item.id"
+              >
+              </el-option>
+            </el-select>
+          </template>
+        </p>
+      </div>
+      <!-- 底部区域 -->
+      <span
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button @click="closeRoleDialog">取 消</el-button>
+        <el-button
+          type="primary"
+          @click="addUserRole"
+        >确 定</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -261,6 +299,8 @@ export default {
       addDialogVisible: false,
       // 控制修改用户对话框的显示和隐藏
       editDialogVisible: false,
+      // 控制分配角色弹窗的弹出和关闭
+      setRoleDialogVisible: false,
       // 添加用户的表单数据
       addForm: {
         username: '',
@@ -308,7 +348,13 @@ export default {
           { required: true, message: '请输入电话', trigger: 'blur' },
           { validator: checkMobil, trigger: 'blur' }
         ]
-      }
+      },
+      // 需要被分配角色的用户信息
+      userInfo: {},
+      // 角色权限列表
+      roleList: [],
+      // 已选中的角色权限ID
+      selectRoleId: ''
     }
   },
   created () {
@@ -363,7 +409,6 @@ export default {
     },
     // 修改按钮事件
     async editButton (row) {
-      console.log(row)
       const { data: res } = await this.$http.get('users/' + row.id)
       if (res.meta.status !== 200) {
         return this.$message.error(res.meta.msg)
@@ -381,7 +426,6 @@ export default {
       const editForm = this.editForm
       this.$refs.editFormRef.validate(async valid => {
         if (!valid) return
-        console.log(valid)
         const { data: res } = await this.$http.put('users/' + editForm.id, {
           email: this.editForm.email,
           mobile: this.editForm.mobile
@@ -401,7 +445,6 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).catch(res => res)
-      console.log(confirmResult)
       if (confirmResult === 'confirm') {
         const { data: res } = await this.$http.delete('users/' + id)
         if (res.meta.status !== 200) {
@@ -413,7 +456,36 @@ export default {
       } else {
         this.$message.info('已取消删除用户操作！')
       }
+    },
+    // 分配角色的按钮
+    async openRoleDialogVisible (userInfo) {
+      this.userInfo = userInfo
+      // 在展示对话框之前，获取所有角色的列表
+      const { data: res } = await this.$http.get('roles')
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.roleList = res.data
+      this.setRoleDialogVisible = true
+    },
+    // 关闭分配角色的弹窗
+    closeRoleDialog () {
+      this.setRoleDialogVisible = false
+      this.selectRoleId = ''
+      this.userInfo = []
+    },
+    // 增加用户分配角色
+    async addUserRole () {
+      if (!this.selectRoleId) {
+        return this.$message.error('请选择要分配的角色')
+      }
+      const { data: res } = await this.$http.put(`users/${this.userInfo.id}/role`, {
+        rid: this.selectRoleId
+      })
+      if (res.meta.status !== 200) return this.$message.error(res.meta.msg)
+      this.$message.success(res.meta.msg)
+      this.setRoleDialogVisible = false
+      this.getUserList()
     }
+
   }
 }
 </script>
